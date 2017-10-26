@@ -1,0 +1,9 @@
+LIBRARY graoDll
+EXPORTS
+  Java_grao_integration_GraoImpl_getPersonInfoJson
+  Java_grao_integration_GraoImpl_getPersonInfoXml
+  Java_grao_integration_GraoImpl_unInitializeCom
+  Java_grao_integration_GraoImpl_initializeCom
+  Java_grao_integration_GraoImpl_showConsole
+  Java_grao_integration_GraoImpl_setFlags
+  printPersonInfo
