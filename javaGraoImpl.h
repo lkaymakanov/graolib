@@ -8,6 +8,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 /*
  * Class:     GraoImpl
  * Method:    getPersonInfoJson
@@ -15,6 +16,18 @@ extern "C" {
  */
 JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfoJson
   (JNIEnv *, jobject,  jstring);
+
+
+
+/*
+ * Class:     GraoImpl
+ * Method:    getPersonInfoJson
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfo
+(JNIEnv *, jobject,  jstring, jlong flags);
+
+
 
 /*
  * Class:     GraoImpl

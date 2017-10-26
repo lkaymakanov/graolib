@@ -32,6 +32,8 @@ static int bWin1251TounicodeMapinitialized = 0;
 static long flags = 0;
 
 
+
+
 jstring getPersonInfo(JNIEnv *env,  jstring egn,  std::wstring(*strFun)(PROPERTYNAME_VALUE *) ){
 	//unsigned short *egnConverted = (unsigned short*)env->GetStringUTFChars(egn, 0);
 	/*
@@ -92,7 +94,7 @@ Definitions of functions exports called by JAVA!!!
 Retrieve data as xml String for person by EGN! Called from JAVA!!!
 */
 JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfoXml
-(JNIEnv *env, jobject ob, jstring egn){
+	(JNIEnv *env, jobject ob, jstring egn){
 	return getPersonInfo(env, egn, createXml);
 }
 
@@ -104,7 +106,14 @@ JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfoJson
 	return getPersonInfo(env, egn, createJson);
 }
 
+/*** 
+Retrieve data as  String format defined by flags param for EGN! Called from JAVA!!!
+*/
+JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfo
+	(JNIEnv *env, jobject ob,  jlong flags ){
+	return NULL;
 
+}
 
 //initialize COM
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_initializeCom
@@ -345,7 +354,7 @@ HRESULT getPersonInfo(BSTR ein,
 }
 
 /***
-Creates
+Creates xml sting
 */
 std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue){
 	std::wstring res(L"");
@@ -355,7 +364,7 @@ std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue){
 		BSTR currentPropertyValue = arraypNameValue[i].propValue;
 		std::wstring xmlB(arraypNameValue[i].propName.pXmlBegin);
 		std::wstring xmlE(arraypNameValue[i].propName.pXmlEnd);
-		if(currentPropertyValue == NULL){ res+= (xmlB + xmlE + nL); continue;}
+		if(currentPropertyValue == NULL){ /*res+= (xmlB + xmlE + nL);*/ continue;}
 		res+= (xmlB + arraypNameValue[i].propValue +  xmlE + nL);
 	}
 	return xml + xmlPersonBegin + res + xmlPersonEnd;

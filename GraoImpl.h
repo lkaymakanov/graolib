@@ -8,6 +8,12 @@
 #define DEBUG_FLAG        0x1   //prints debug statements in console
 #define SHOW_CONSOLE      0x2   //allocates console for the current process
 
+#define SINGLE_LINE_FLAG 1;
+#define JSON_FLAG = 0x2;
+#define XML_FLAG = 0x4;
+#define CSV_FLAG = 0x8;
+#define TSV_FLAG = 0x10;
+
 
 //declarations 
 //COM object identifiers
