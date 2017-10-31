@@ -101,7 +101,7 @@ std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong);
 wchar_t * numberToString(long );   //converts number to hex string!!!
 void printStringCharCodes(wchar_t *st);
 void initWin1251TounicodeMap();
-int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, PROPERTYNAME_VALUE *resultArray[]);  //Takes only not null properties into a  result array of pointers!!!
+int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, int *resultArray);  //Takes only not null properties into a  result array of pointers!!!
 jlong testDFlag(jlong flag);
 jlong testFlag(jlong flags, jlong flag);
 void convertWin1251ToUnicode(wchar_t * st); //Repalces win1251 cyrillic symbols with UNICODE Equivalents from win1251_To_UnicodeMap!

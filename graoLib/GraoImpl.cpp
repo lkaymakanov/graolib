@@ -369,16 +369,16 @@ static std::wstring createOutPut(PROPERTYNAME_VALUE *arraypNamValue, jlong flags
 }
 
 /***
-Takes only not null properties into a  result array of pointers!!!
+Takes only not null properties indexes into a  result array - array must  PROP_CNT integers  in length!!!
 */
-static int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, PROPERTYNAME_VALUE *resultArray[]){
+static int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, int *resultArray){
 	int i=0;
 	int cnt = 0;  //number of not null properties
 
 	for(; i < PROP_CNT; i++){
 		BSTR currentPropertyValue = arraypNamValue[i].propValue;
 		if(currentPropertyValue == NULL || wcslen(currentPropertyValue) == 0) continue;
-		resultArray[cnt++] = &arraypNamValue[i];  //store element pointer in result array!!!
+		resultArray[cnt++] = i;//&arraypNamValue[i];  //store index in result array!!!
 	}
 	return cnt;
 }
@@ -394,23 +394,24 @@ static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, jlong flags)
 	std::wstring lbjson = L"{";
 	if(!isSingleLine) lbjson+L"\n";
 
-	//local array of pointers storing only not null and not empty properties!!!
-	PROPERTYNAME_VALUE *larray[PROP_CNT];
+	//local array of integers storing indexes  only of not null and not empty properties!!!
+	int indexarray[PROP_CNT]; for(int i=0; i < PROP_CNT; i++) indexarray[i] =i;
+	PROPERTYNAME_VALUE *parray = arraypNameValue;
 
-	//filter not null properties 
-	cnt = notNullFilter(arraypNameValue, larray);
-	
+	if(testFlag(flags, SKIP_NULL_FLAG)){
+		cnt = notNullFilter(arraypNameValue, indexarray);
+	}
 	if(cnt == 0) return res;    //no not null properties allowed - return empty string instead!!!
 
 	for(; i < cnt-1; i++){
-		std::wstring propName(larray[i]->propName.propNameWideChar);
-		std::wstring propValue(larray[i]->propValue == NULL ? L"null" : larray[i]->propValue);  //this is not supposed to happen but just in case!!!
+		std::wstring propName(parray[indexarray[i]].propName.propNameWideChar);
+		std::wstring propValue(parray[indexarray[i]].propValue == NULL ? L"null" : parray[indexarray[i]].propValue);  //this is not supposed to happen but just in case!!!
 		if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
 		else res+=(quote + propName + quote + colon + quote + propValue + quote + comma);
 	}
 	//add the last element to json string
-	std::wstring propName(larray[i]->propName.propNameWideChar);
-	std::wstring propValue(larray[i]->propValue == NULL ? L"null" : larray[i]->propValue);
+	std::wstring propName(parray[indexarray[i]].propName.propNameWideChar);
+	std::wstring propValue(parray[indexarray[i]].propValue == NULL ? L"null" : parray[indexarray[i]].propValue);
 	if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
 	else res+=(quote + propName + quote + colon + quote + propValue + quote + comma);
 	res= lbjson + res + ejson;
@@ -438,29 +439,19 @@ static std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
 	int cnt = PROP_CNT;
 	jlong isSingleLine = testFlag(flags, SINGLE_LINE_FLAG);
 
-	//local array of pointers storing only not null and not empty properties!!!
-	PROPERTYNAME_VALUE *larray[PROP_CNT];
+	//local array of integers storing indexes  only of not null and not empty properties!!!
+	int indexarray[PROP_CNT]; for(int i=0; i < PROP_CNT; i++) indexarray[i] =i;
 	PROPERTYNAME_VALUE *parray = arraypNameValue;
 
-	//filter not null fileds
 	if(testFlag(flags, SKIP_NULL_FLAG)){
-		cnt = notNullFilter(arraypNameValue, larray);
-		
-		for(i; i < cnt; i++){
-			std::wstring propValue(larray[i]->propValue == NULL ? L"" : larray[i]->propValue);
-			std::wstring xmlB(larray[i]->propName.pXmlBegin);
-			std::wstring xmlE(larray[i]->propName.pXmlEnd);
-			if(isSingleLine) res+=(xmlB + propValue +  xmlE);
-			else res+=(xmlB + propValue +  xmlE + nL);
-		}
-		if(isSingleLine)  return xml + xmlPersonBegin + res + xmlPersonEnd;
-		return xml + nL + xmlPersonBegin + nL + res + xmlPersonEnd + nL;
+		cnt = notNullFilter(arraypNameValue, indexarray);
 	}
+	if(cnt == 0) return res;
 
 	for(i; i < cnt; i++){
-		std::wstring propValue(parray[i].propValue == NULL ? L"" : parray[i].propValue);
-		std::wstring xmlB(parray[i].propName.pXmlBegin);
-		std::wstring xmlE(parray[i].propName.pXmlEnd);
+		std::wstring propValue(parray[indexarray[i]].propValue == NULL ? L"" : parray[indexarray[i]].propValue);
+		std::wstring xmlB(parray[indexarray[i]].propName.pXmlBegin);
+		std::wstring xmlE(parray[indexarray[i]].propName.pXmlEnd);
 		if(isSingleLine) res+=(xmlB + propValue +  xmlE);
 		else res+=(xmlB + propValue +  xmlE + nL);
 	}
