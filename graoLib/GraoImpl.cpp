@@ -439,13 +439,19 @@ static std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
 	jlong isSingleLine = testFlag(flags, SINGLE_LINE_FLAG);
 
 	//local array of pointers storing only not null and not empty properties!!!
-	//PROPERTYNAME_VALUE *larray[PROP_CNT];
-	//PROPERTYNAME_VALUE **parray = &arraypNameValue;
+	PROPERTYNAME_VALUE *larray[PROP_CNT];
+	PROPERTYNAME_VALUE *parray = arraypNameValue;
+
+	//filter not null fileds
+	if(testFlag(flags, SKIP_NULL_FLAG)){
+		cnt = notNullFilter(arraypNameValue, larray);
+		parray = larray[0];
+	}
 
 	for(i; i < cnt; i++){
-		std::wstring propValue(arraypNameValue[i].propValue == NULL ? L"" : arraypNameValue[i].propValue);
-		std::wstring xmlB(arraypNameValue[i].propName.pXmlBegin);
-		std::wstring xmlE(arraypNameValue[i].propName.pXmlEnd);
+		std::wstring propValue(parray[i].propValue == NULL ? L"" : parray[i].propValue);
+		std::wstring xmlB(parray[i].propName.pXmlBegin);
+		std::wstring xmlE(parray[i].propName.pXmlEnd);
 		if(isSingleLine) res+=(xmlB + propValue +  xmlE);
 		else res+=(xmlB + propValue +  xmlE + nL);
 	}
