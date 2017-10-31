@@ -395,7 +395,7 @@ static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, jlong flags)
 	if(!isSingleLine) lbjson+L"\n";
 
 	//local array of integers storing indexes  only of not null and not empty properties!!!
-	int indexarray[PROP_CNT]; for(int i=0; i < PROP_CNT; i++) indexarray[i] =i;
+	int indexarray[PROP_CNT]; for(int j=0; j < PROP_CNT; j++) indexarray[j] = j;
 	PROPERTYNAME_VALUE *parray = arraypNameValue;
 
 	if(testFlag(flags, SKIP_NULL_FLAG)){
@@ -440,7 +440,7 @@ static std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
 	jlong isSingleLine = testFlag(flags, SINGLE_LINE_FLAG);
 
 	//local array of integers storing indexes  only of not null and not empty properties!!!
-	int indexarray[PROP_CNT]; for(int i=0; i < PROP_CNT; i++) indexarray[i] =i;
+	int indexarray[PROP_CNT]; for(int j=0; j < PROP_CNT; j++) indexarray[j] = j;
 	PROPERTYNAME_VALUE *parray = arraypNameValue;
 
 	if(testFlag(flags, SKIP_NULL_FLAG)){
