@@ -378,7 +378,7 @@ static int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, PROPERTYNAME_VALUE 
 	for(; i < PROP_CNT; i++){
 		BSTR currentPropertyValue = arraypNamValue[i].propValue;
 		if(currentPropertyValue == NULL || wcslen(currentPropertyValue) == 0) continue;
-		resultArray[cnt++] = &arraypNamValue[i];  //store element pointer in local array!!!
+		resultArray[cnt++] = &arraypNamValue[i];  //store element pointer in result array!!!
 	}
 	return cnt;
 }
@@ -445,7 +445,16 @@ static std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
 	//filter not null fileds
 	if(testFlag(flags, SKIP_NULL_FLAG)){
 		cnt = notNullFilter(arraypNameValue, larray);
-		parray = larray[0];
+		
+		for(i; i < cnt; i++){
+			std::wstring propValue(larray[i]->propValue == NULL ? L"" : larray[i]->propValue);
+			std::wstring xmlB(larray[i]->propName.pXmlBegin);
+			std::wstring xmlE(larray[i]->propName.pXmlEnd);
+			if(isSingleLine) res+=(xmlB + propValue +  xmlE);
+			else res+=(xmlB + propValue +  xmlE + nL);
+		}
+		if(isSingleLine)  return xml + xmlPersonBegin + res + xmlPersonEnd;
+		return xml + nL + xmlPersonBegin + nL + res + xmlPersonEnd + nL;
 	}
 
 	for(i; i < cnt; i++){
@@ -457,28 +466,6 @@ static std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
 	}
 	if(isSingleLine)  return xml + xmlPersonBegin + res + xmlPersonEnd;
 	return xml + nL + xmlPersonBegin + nL + res + xmlPersonEnd + nL;
-
-	/*
-	//filter not null properties 
-	if(testFlag(flags, SKIP_NULL_FLAG)){
-		cnt = notNullFilter(arraypNameValue, larray);
-		parray = larray;
-	}else{
-		parray = &arraypNameValue;
-	}
-	if(cnt == 0) return res;  
-
-	for(; i < cnt-1; i++){
-		std::wstring propValue(parray[i]->propValue == NULL ? L"" : parray[i]->propValue);
-		//BSTR currentPropertyValue = parray[i]->propValue;
-		std::wstring xmlB(parray[i]->propName.pXmlBegin);
-		std::wstring xmlE(parray[i]->propName.pXmlEnd);
-		if(isSingleLine ) res+= (xmlB +  propValue +  xmlE);    //one line
-		else res+= (xmlB + propValue +  xmlE + nL);             
-	}
-	if(isSingleLine) return xml + xmlPersonBegin + res + xmlPersonEnd;
-	return xml + nL + xmlPersonBegin + nL + res + xmlPersonEnd + nL;
-	*/
 }
 
 
