@@ -17,7 +17,7 @@ static std::wstring nL(L"\n");  //new line
 static std::wstring quote(L"\"");  //double quote 
 static std::wstring colon(L":"); //colon
 static std::wstring comma(L",");  //comma
-static std::wstring bjson(L"{\n");  //begin of json object
+static std::wstring bjson(L"{");  //begin of json object
 static std::wstring ejson(L"}");   //end  of json object
 static std::wstring xml(L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 static std::wstring xmlPersonBegin(L"<personinfo>");
@@ -29,15 +29,22 @@ static std::map<wchar_t, wchar_t> win1251_To_UnicodeMap;
 
 static int bConsoleOpened = 0;
 static int bWin1251TounicodeMapinitialized = 0;
-static long flags = 0;
+static jlong dflags = 0;
 
 
 
 
-jstring getPersonInfo(JNIEnv *env,  jstring egn, __int64 flags,  std::wstring(*strFun)(PROPERTYNAME_VALUE *, __int64) ){
+jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*strFun)(PROPERTYNAME_VALUE *, jlong) ){
 	 //unsigned short *egnConverted = (unsigned short*)env->GetStringUTFChars(egn, 0);
 	 
 	 HRESULT hr;
+	 if(testDFlag(DEBUG_FLAG)){
+		 printf("Flags in getPersonInfo are %d\n", flags);
+		 printf("IS_SINGLE_LINE %d\n", testFlag(flags, SINGLE_LINE_FLAG));
+		 printf("IS_JSON %d\n", testFlag(flags, JSON_FLAG) );
+		 printf("IS_XML %d\n", testFlag(flags, XML_FLAG));
+		 printf("IS_SKIP_NULL %d\n", testFlag(flags, SKIP_NULL_FLAG));
+	 }
 
 	 //convert EGN to wide char
 	 wchar_t* wsz = JavaToWSZ(env, egn);
@@ -106,15 +113,15 @@ Retrieve data as  String format defined by flags param for EGN! Called from JAVA
 */
 
 JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfo
-	(JNIEnv *env, jobject ob, jstring egn, jlong flags ){
-	return getPersonInfo(env, egn, flags, createOutPut);
+	(JNIEnv *env, jobject ob, jstring egn, jlong flagss ){
+	return getPersonInfo(env, egn, flagss, createOutPut);
 }
 
 //initialize COM
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_initializeCom
 (JNIEnv *env, jobject ob){
 	HRESULT res = CoInitialize(NULL);
-	if(testFlag(DEBUG_FLAG))
+	if(testDFlag(DEBUG_FLAG))
 	printf("CoInitialize called result =  %d... " , res);
 }
 
@@ -122,7 +129,7 @@ JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_initializeCom
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_unInitializeCom
 (JNIEnv *env, jobject ob){
 	CoUninitialize();
-	if(testFlag(DEBUG_FLAG))
+	if(testDFlag(DEBUG_FLAG))
 	printf("CoUnitialize called... ");
 }
 
@@ -135,8 +142,8 @@ JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_showConsole(JNIEnv *env, j
 Sets debug flags in grao dll library from java!!!
 */
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_setFlags
-	(JNIEnv *env, jobject ob, jint jflags){
-		flags = jflags;
+	(JNIEnv *env, jobject ob, jlong jflags){
+		dflags = jflags;
 }
 
 
@@ -180,9 +187,16 @@ static void showConsole(){
 }
 
 /***
-Tests if flag is non zero!!!
+Tests   if debug flag is non zero!!!
 */
-static int testFlag(int flag){
+static jlong testDFlag(jlong flag){
+	return (dflags & flag);
+}
+
+/***
+Tests   if non debug flag is non zero!!!
+*/
+static jlong testFlag(jlong flags, jlong flag){
 	return (flags & flag);
 }
 
@@ -285,7 +299,7 @@ static void displayProperty(int i, BSTR res){
 
 //shows property name & value in console!
 static void printProperty(PROPERTYNAME_VALUE *property){
-	    if(!testFlag(DEBUG_FLAG)) return ;
+	    if(!testDFlag(DEBUG_FLAG)) return ;
 		printf("=======================================================\n");
 		if(property->propName.propNameOneByteChar!=NULL) {
 			printf("PropertyName = ");
@@ -342,41 +356,15 @@ static HRESULT getPersonInfo(BSTR ein,
 	return hr;
 }
 
-/***
-Creates xml sting out of property-Name array!
-*/
-static std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, __int64 flags){
-	std::wstring res(L"");
-	int i = 0;
-	int cnt = PROP_CNT;
-	int isSingleLine = IS_SINGLE_LINE(flags);
 
-	//local array of pointers storing only not null and not empty properties!!!
-	PROPERTYNAME_VALUE *larray[PROP_CNT];
-
-	//filter not null properties 
-	if(IS_SKIP_NULL(flags)) cnt = notNullFilter(arraypNameValue, larray);
-	if(cnt == 0) return res;  
-
-	for(; i < cnt; i++){
-		BSTR currentPropertyValue = larray[i]->propValue;
-		std::wstring xmlB(larray[i]->propName.pXmlBegin);
-		std::wstring xmlE(larray[i]->propName.pXmlEnd);
-		BSTR  val = (currentPropertyValue == NULL) ?  L"" : larray[i]->propValue;
-		if(isSingleLine ) res+= (xmlB +  val +  xmlE);    //one line
-		else res+= (xmlB + val +  xmlE + nL);             
-	}
-	if(isSingleLine) return xml + xmlPersonBegin + res + xmlPersonEnd;
-	return xml + nL + xmlPersonBegin + nL + res + xmlPersonEnd + nL;
-}
 
 
 /***
 Creates output string from properties based on the flags parameter!
 */
-static std::wstring createOutPut(PROPERTYNAME_VALUE *arraypNamValue, __int64 flags){
-	if(IS_JSON(flags)) return createJson(arraypNamValue, flags);
-	if(IS_XML(flags))  return createXml(arraypNamValue, flags);
+static std::wstring createOutPut(PROPERTYNAME_VALUE *arraypNamValue, jlong flags){
+	if(testFlag(flags, JSON_FLAG)) return createJson(arraypNamValue, flags);
+	if(testFlag(flags, XML_FLAG))  return createXml(arraypNamValue, flags);
 	return createJson(arraypNamValue, flags);
 }
 
@@ -386,7 +374,6 @@ Takes only not null properties into a  result array of pointers!!!
 static int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, PROPERTYNAME_VALUE *resultArray[]){
 	int i=0;
 	int cnt = 0;  //number of not null properties
-	int isSingleLine = IS_SINGLE_LINE(flags);
 
 	for(; i < PROP_CNT; i++){
 		BSTR currentPropertyValue = arraypNamValue[i].propValue;
@@ -399,11 +386,13 @@ static int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, PROPERTYNAME_VALUE 
 /**
 Creates a json string out of property-Name array!
 */
-static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, __int64 flags){
+static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
 	std::wstring res(L"");
 	int i =0;
 	int cnt = 0;  //number of not null properties
-	int isSingleLine = IS_SINGLE_LINE(flags);  //check if new line must be added between properties in result string
+	jlong isSingleLine = testFlag(flags, SINGLE_LINE_FLAG);  //check if new line must be added between properties in result string
+	std::wstring lbjson = L"{";
+	if(!isSingleLine) lbjson+L"\n";
 
 	//local array of pointers storing only not null and not empty properties!!!
 	PROPERTYNAME_VALUE *larray[PROP_CNT];
@@ -416,15 +405,15 @@ static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, __int64 flag
 	for(; i < cnt-1; i++){
 		std::wstring propName(larray[i]->propName.propNameWideChar);
 		std::wstring propValue(larray[i]->propValue == NULL ? L"null" : larray[i]->propValue);  //this is not supposed to happen but just in case!!!
-		if(isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
+		if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
 		else res+=(quote + propName + quote + colon + quote + propValue + quote + comma);
 	}
 	//add the last element to json string
 	std::wstring propName(larray[i]->propName.propNameWideChar);
 	std::wstring propValue(larray[i]->propValue == NULL ? L"null" : larray[i]->propValue);
-	if(isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
+	if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
 	else res+=(quote + propName + quote + colon + quote + propValue + quote + comma);
-	res= bjson + res + ejson;
+	res= lbjson + res + ejson;
 
 	return res;
 	/*
@@ -436,6 +425,54 @@ static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, __int64 flag
 			MB_ICONEXCLAMATION | MB_YESNO
 		);*/
 	//wprintf((const wchar_t*)res.data);
+}
+
+
+/***
+Creates xml sting out of property-Name array!
+*/
+static std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
+	std::wstring res(L"");
+	
+	int i = 0;
+	int cnt = PROP_CNT;
+	jlong isSingleLine = testFlag(flags, SINGLE_LINE_FLAG);
+
+	//local array of pointers storing only not null and not empty properties!!!
+	//PROPERTYNAME_VALUE *larray[PROP_CNT];
+	//PROPERTYNAME_VALUE **parray = &arraypNameValue;
+
+	for(i; i < cnt; i++){
+		std::wstring propValue(arraypNameValue[i].propValue == NULL ? L"" : arraypNameValue[i].propValue);
+		std::wstring xmlB(arraypNameValue[i].propName.pXmlBegin);
+		std::wstring xmlE(arraypNameValue[i].propName.pXmlEnd);
+		if(isSingleLine) res+=(xmlB + propValue +  xmlE);
+		else res+=(xmlB + propValue +  xmlE + nL);
+	}
+	if(isSingleLine)  return xml + xmlPersonBegin + res + xmlPersonEnd;
+	return xml + nL + xmlPersonBegin + nL + res + xmlPersonEnd + nL;
+
+	/*
+	//filter not null properties 
+	if(testFlag(flags, SKIP_NULL_FLAG)){
+		cnt = notNullFilter(arraypNameValue, larray);
+		parray = larray;
+	}else{
+		parray = &arraypNameValue;
+	}
+	if(cnt == 0) return res;  
+
+	for(; i < cnt-1; i++){
+		std::wstring propValue(parray[i]->propValue == NULL ? L"" : parray[i]->propValue);
+		//BSTR currentPropertyValue = parray[i]->propValue;
+		std::wstring xmlB(parray[i]->propName.pXmlBegin);
+		std::wstring xmlE(parray[i]->propName.pXmlEnd);
+		if(isSingleLine ) res+= (xmlB +  propValue +  xmlE);    //one line
+		else res+= (xmlB + propValue +  xmlE + nL);             
+	}
+	if(isSingleLine) return xml + xmlPersonBegin + res + xmlPersonEnd;
+	return xml + nL + xmlPersonBegin + nL + res + xmlPersonEnd + nL;
+	*/
 }
 
 
@@ -477,7 +514,7 @@ static wchar_t * numberToString(long l ){
 Prints the codes of a wide char string!!!
 */
 void printStringCharCodes(wchar_t *st){
-	if((!testFlag(DEBUG_FLAG)) || (st == NULL)) return;
+	if((!testDFlag(DEBUG_FLAG)) || (st == NULL)) return;
 	int len = wcslen(st);
 	printf("UNICODE char codes: ");
 	for(int i = 0; i < len; i++){
@@ -515,7 +552,7 @@ static void convertWin1251ToUnicode(wchar_t * st){
 The same as printf but only allowed if DEBUG_FLAG is raised!!!
 */
 int __cdecl debug_printf(const char * format, ...){
-	   if(!testFlag(DEBUG_FLAG)) return 0;
+	   if(!testDFlag(DEBUG_FLAG)) return 0;
 	    va_list args;
 		va_start(args, format);
 		printf(format, args);
@@ -527,7 +564,7 @@ int __cdecl debug_printf(const char * format, ...){
 The same as wprintf but only allowed if DEBUG_FLAG is raised!!!
 */
 int __cdecl debug_wprintf(const wchar_t * format, ...){
-	 if(!testFlag(DEBUG_FLAG)) return 0;
+	 if(!testDFlag(DEBUG_FLAG)) return 0;
 	 va_list args;
 	 va_start(args, format);
 	 wprintf(format, args);

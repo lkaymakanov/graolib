@@ -8,20 +8,22 @@
 #define DEBUG_FLAG        0x1   //prints debug statements in console
 #define SHOW_CONSOLE      0x2   //allocates console for the current process
 
-#define SINGLE_LINE_FLAG 1      //returns resulting string as one line
-#define JSON_FLAG = 0x2			//creates json result string
-#define XML_FLAG = 0x4			//creates xml result string
-#define CSV_FLAG = 0x8			//creates csv result string
-#define TSV_FLAG = 0x10			//creates tsv resuslt string
-#define SKIP_NULL = 0x20		//skips null properties in result string
+#define SINGLE_LINE_FLAG 0x1      //returns resulting string as one line
+#define JSON_FLAG  0x2			//creates json result string
+#define XML_FLAG   0x4			//creates xml result string
+#define CSV_FLAG   0x8			//creates csv result string
+#define TSV_FLAG   0x10			//creates tsv resuslt string
+#define SKIP_NULL_FLAG  0x20		    //skips null properties in result string
 
 //macros cheking certain flags
+/**
 #define IS_JSON(f)(f&JSON_FLAG)
 #define IS_SINGLE_LINE(f)   (f & SINGLE_LINE_FLAG)
 #define IS_XML(f)(f&XML_FLAG)
-#define IS_CSV(f)    (f & CSV_FLAG) 
-#define IS_TSV(f)    (f & TSV_FLAG) 
+#define IS_CSV(f)(f&CSV_FLAG)
+#define IS_TSV(f)(f&TSV_FLAG)
 #define IS_SKIP_NULL(f)(f&SKIP_NULL)
+*/
 
 
 
@@ -89,18 +91,19 @@ public:
 
 //declarations of functions
 HRESULT getPersonInfo(BSTR ein, PROPERTYNAME_VALUE  *data);
-jstring getPersonInfo(JNIEnv *env,  jstring egn, __int64, std::wstring(*strFun)(PROPERTYNAME_VALUE *, __int64) );
+jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags, std::wstring(*strFun)(PROPERTYNAME_VALUE *, jlong) );
 wchar_t * JavaToWSZ(JNIEnv* env, jstring string);
 void initPropertyNames(PROPERTYNAME_VALUE *arr);
 void initPropertyNames(PROPERTYNAME_VALUE *arrayp);
-std::wstring createOutPut(PROPERTYNAME_VALUE *arraypNamValue, __int64);
-std::wstring createJson(PROPERTYNAME_VALUE *arraypNamValue, __int64);
-std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, __int64);
+std::wstring createOutPut(PROPERTYNAME_VALUE *arraypNamValue, jlong);
+std::wstring createJson(PROPERTYNAME_VALUE *arraypNamValue, jlong);
+std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong);
 wchar_t * numberToString(long );   //converts number to hex string!!!
 void printStringCharCodes(wchar_t *st);
 void initWin1251TounicodeMap();
 int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, PROPERTYNAME_VALUE *resultArray[]);  //Takes only not null properties into a  result array of pointers!!!
-int testFlag(int flag);
+jlong testDFlag(jlong flag);
+jlong testFlag(jlong flags, jlong flag);
 void convertWin1251ToUnicode(wchar_t * st); //Repalces win1251 cyrillic symbols with UNICODE Equivalents from win1251_To_UnicodeMap!
 int __cdecl debug_printf(const char * _Format, ...);
 int __cdecl debug_wprintf(const wchar_t * _Format, ...);
