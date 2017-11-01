@@ -389,7 +389,7 @@ Creates a json string out of property-Name array!
 static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
 	std::wstring res(L"");
 	int i =0;
-	int cnt = 0;  //number of not null properties
+	int cnt = PROP_CNT;  //number of not null properties
 	jlong isSingleLine = testFlag(flags, SINGLE_LINE_FLAG);  //check if new line must be added between properties in result string
 	std::wstring lbjson = L"{";
 	if(!isSingleLine) lbjson+L"\n";
