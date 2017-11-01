@@ -17,6 +17,7 @@ static std::wstring nL(L"\n");  //new line
 static std::wstring quote(L"\"");  //double quote 
 static std::wstring colon(L":"); //colon
 static std::wstring comma(L",");  //comma
+static std::wstring tab(L"	");  //comma
 static std::wstring bjson(L"{");  //begin of json object
 static std::wstring ejson(L"}");   //end  of json object
 static std::wstring xml(L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
@@ -365,6 +366,8 @@ Creates output string from properties based on the flags parameter!
 static std::wstring createOutPut(PROPERTYNAME_VALUE *arraypNamValue, jlong flags){
 	if(testFlag(flags, JSON_FLAG)) return createJson(arraypNamValue, flags);
 	if(testFlag(flags, XML_FLAG))  return createXml(arraypNamValue, flags);
+	if(testFlag(flags, CSV_FLAG))  return createDelimiterSeparatedString(arraypNamValue, comma);
+	if(testFlag(flags, TSV_FLAG))  return createDelimiterSeparatedString(arraypNamValue, tab);
 	return createJson(arraypNamValue, flags);
 }
 
@@ -412,8 +415,8 @@ static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, jlong flags)
 	//add the last element to json string
 	std::wstring propName(parray[indexarray[i]].propName.propNameWideChar);
 	std::wstring propValue(parray[indexarray[i]].propValue == NULL ? L"null" : parray[indexarray[i]].propValue);
-	if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
-	else res+=(quote + propName + quote + colon + quote + propValue + quote + comma);
+	if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + nL);
+	else res+=(quote + propName + quote + colon + quote + propValue + quote);
 	res= lbjson + res + ejson;
 
 	return res;
@@ -458,6 +461,28 @@ static std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
 	if(isSingleLine)  return xml + xmlPersonBegin + res + xmlPersonEnd;
 	return xml + nL + xmlPersonBegin + nL + res + xmlPersonEnd + nL;
 }
+
+
+
+/***
+Creates delimiter separated  sting out of property-Name array! Single line flag is not checked! Always returns single line string!!
+Not  null properties flag is also ignored!!
+*/
+static std::wstring createDelimiterSeparatedString(PROPERTYNAME_VALUE *arraypNameValue, std::wstring delimiter){
+	std::wstring res(L"");
+	int i = 0;
+	int cnt = PROP_CNT;
+	
+	for(i; i < cnt-1; i++){
+		std::wstring propValue(arraypNameValue[i].propValue == NULL ? L"" : arraypNameValue[i].propValue);
+		res+=(propValue + delimiter);
+	}
+	std::wstring propValue(arraypNameValue[i].propValue == NULL ? L"" : arraypNameValue[i].propValue);
+	res+=(propValue);
+	
+	return res;
+}
+
 
 
 /**

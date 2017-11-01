@@ -97,6 +97,7 @@ void initPropertyNames(PROPERTYNAME_VALUE *arr);
 void initPropertyNames(PROPERTYNAME_VALUE *arrayp);
 std::wstring createOutPut(PROPERTYNAME_VALUE *arraypNamValue, jlong);
 std::wstring createJson(PROPERTYNAME_VALUE *arraypNamValue, jlong);
+static std::wstring createDelimiterSeparatedString(PROPERTYNAME_VALUE *arraypNameValue, std::wstring delimiter);
 std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong);
 wchar_t * numberToString(long );   //converts number to hex string!!!
 void printStringCharCodes(wchar_t *st);
