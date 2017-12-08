@@ -17,7 +17,7 @@ static std::wstring nL(L"\n");  //new line
 static std::wstring quote(L"\"");  //double quote 
 static std::wstring colon(L":"); //colon
 static std::wstring comma(L",");  //comma
-static std::wstring tab(L"	");  //comma
+static std::wstring tab(L"	");  //tab
 static std::wstring bjson(L"{");  //begin of json object
 static std::wstring ejson(L"}");   //end  of json object
 static std::wstring xml(L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
@@ -39,12 +39,21 @@ jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*str
 	 //unsigned short *egnConverted = (unsigned short*)env->GetStringUTFChars(egn, 0);
 	 
 	 HRESULT hr;
-	 if(testDFlag(DEBUG_FLAG)){
+	 HASHES hash;
+	 hash.hcSt = NULL;
+	 hash.hpSt = NULL;
+	 hash.hSt = NULL;
+
+	 long hashes[3];
+
+	 int debug = testDFlag(DEBUG_FLAG);
+	 if(debug){
 		 printf("Flags in getPersonInfo are %d\n", flags);
 		 printf("IS_SINGLE_LINE %d\n", testFlag(flags, SINGLE_LINE_FLAG));
 		 printf("IS_JSON %d\n", testFlag(flags, JSON_FLAG) );
 		 printf("IS_XML %d\n", testFlag(flags, XML_FLAG));
 		 printf("IS_SKIP_NULL %d\n", testFlag(flags, SKIP_NULL_FLAG));
+		 printf("IS_CALC_HASH %d\n", testFlag(flags, CALC_HASH_FLAG));
 	 }
 
 	 //convert EGN to wide char
@@ -57,7 +66,7 @@ jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*str
 	 
 	 //set hresult field
 	 PROPERTYNAME_VALUE *errCodeProp =  &propNameValue[0];
-	 errCodeProp->propValue = numberToString(hr);
+	 errCodeProp->propValue = numberToString(hr, 16);
 
 	 PWSTR errDesc= NULL;
 	 //set error description if errorcode != S_OK
@@ -66,52 +75,85 @@ jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*str
 		 (&propNameValue[1])->propValue = errDesc;
 	 }
 
+	  //calculate & print address hashes
+	 if(testFlag(flags, CALC_HASH_FLAG)){
+		 calcHashes(propNameValue, hashes);
+		 fillHashes(&hash, hashes);
+		 propNameValue[2].propValue = hash.hpSt;
+		 propNameValue[3].propValue = hash.hcSt;
+		 propNameValue[4].propValue = hash.hSt;
+	 }
+
 	 //create  string from person properties
 	 json = strFun(propNameValue, flags);
 
 	 //print result
 	 debug_wprintf(L"GetPersonInfo called with EGN %s\n", wsz);
      debug_wprintf(L"Result is\n %s\n", json.c_str());
-	  
-	  //free the allocated string for EGN
-	  free(wsz); 
-	 
-	  // const wchar_t* str = L"Here is a quite long and useless string. Note that this even works with non-ASCII characters, like";  
-      //size_t len = wcslen(str); 
-	  jstring retval = env->NewString((const jchar*)json.c_str(), json.length());
 
-	  //free err code if not null
-	  BSTR errCode= propNameValue[0].propValue;
-	  if(errDesc!=NULL) LocalFree(errDesc);
-	  if(errCode != NULL) free(errCode);
-	  return retval;  
+	
+	 //free the allocated string for EGN
+	 free(wsz); 
+	 
+	 // const wchar_t* str = L"Here is a quite long and useless string. Note that this even works with non-ASCII characters, like";  
+     //size_t len = wcslen(str); 
+	 jstring retval = env->NewString((const jchar*)json.c_str(), json.length());
+
+	 //free err code if not null
+	 BSTR errCode= propNameValue[0].propValue;
+	 if(errDesc!=NULL) LocalFree(errDesc);
+	 if(errCode != NULL) free(errCode);
+	 freeHashes(&hash);
+	 return retval;  
 }
 
 /***
-Definitions of functions exports called by JAVA!!!
-*/
 
-/*** 
-Retrieve data as xml String for person by EGN! Called from JAVA!!!
+Calculates hashes & fills array of 3 items of long
 */
+void calcHashes(PROPERTYNAME_VALUE *arraypNamValue, long * outArray){
+	long h = 0;
+	
+	h= calcHash(arraypNamValue[OFFSET_TO_DATA].propValue);
+	for(int i = OFFSET_TO_DATA+1; i < 9; i++){
+		h^=calcHash(arraypNamValue[i].propValue);
+	}
+
+	ADDRESS adr;
+	//permanent address hash
+	fillAddress(&adr, arraypNamValue, 9);
+	outArray[0] = calcHash(&adr);
+	h^=outArray[0];
+		 
+	//current address hash
+	fillAddress(&adr, arraypNamValue, 17);
+	outArray[1] = calcHash(&adr);
+	h^=outArray[1];
+	
+	for(int i = 18; i < PROP_CNT; i++){
+		h^=calcHash(arraypNamValue[i].propValue);
+	}
+	outArray[2] = h;
+	return;
+}
+
 /**
-JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfoXml
-	(JNIEnv *env, jobject ob, jstring egn){
-	return getPersonInfo(env, egn, 0x4,  createOutPut);
-}*/
-
-/*** 
-Retrieve data as json String for person by EGN! Called from JAVA!!!
+frees memory for allocated strings
 */
-/*
-JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfoJson
-(JNIEnv *env, jobject ob, jstring egn){
-	return getPersonInfo(env, egn, 0x2, createOutPut);
-}*/
+void freeHashes(HASHES *h){
+	if(h == NULL) return;
+	if(h->hcSt != NULL) free(h->hcSt);
+	if(h->hpSt != NULL) free(h->hpSt);
+	if(h->hSt != NULL) free(h->hSt);
+}
 
-/*** 
-Retrieve data as  String format defined by flags param for EGN! Called from JAVA!!!
-*/
+
+void fillHashes(HASHES * hst , long *hl){
+	if(hst == NULL || hl ==NULL) return;
+	hst->hpSt = numberToString(hl[0], 10);
+	hst->hcSt = numberToString(hl[1],10);
+	hst->hSt = numberToString(hl[2], 10);
+}
 
 JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfo
 	(JNIEnv *env, jobject ob, jstring egn, jlong flagss ){
@@ -156,7 +198,7 @@ JNIEXPORT void JNICALL printPersonInfo(WCHAR *idn){
 	HRESULT hr  = getPersonInfo(idn,propNameValue);
 	//set hresult field
 	PROPERTYNAME_VALUE *errCodeProp =  &propNameValue[0];
-	wchar_t * str = numberToString(hr);
+	wchar_t * str = numberToString(hr, 16);
 	errCodeProp->propValue = str;
 
 	PWSTR errDesc= NULL;
@@ -205,37 +247,40 @@ static jlong testFlag(jlong flags, jlong flag){
 Table that contains the names of the properties for loaded Person!!!
 */
 PROPERTY_NAME  PROPERTY_TABLE [PROP_CNT] = {
-	    PROPERTY_NAME(L"ERROR_CODE",L"<ERROR_CODE>", L"</ERROR_CODE>", "ERROR_CODE"),
-		PROPERTY_NAME(L"ErrorDescription",L"<ErrorDescription>", L"</ErrorDescription>", "ErrorDescription"),
-		PROPERTY_NAME(L"Egn",L"<Egn>", L"</Egn>", "Egn" ),
-		PROPERTY_NAME(L"FirstName",L"<FirstName>", L"</FirstName>", "FirstName"),
-		PROPERTY_NAME(L"MiddleName",L"<MiddleName>", L"</MiddleName>","MiddleName"),
-		PROPERTY_NAME(L"LastName",L"<LastName>", L"</LastName>","LastName"),
-		PROPERTY_NAME(L"PAddrDistrict",L"<PAddrDistrict>", L"</PAddrDistrict>","PAddrDistrict"),
-		PROPERTY_NAME(L"PAddrMunicipality",L"<PAddrMunicipality>", L"</PAddrMunicipality>","PAddrMunicipality"),
-		PROPERTY_NAME(L"PAddrPopulatedPlace",L"<PAddrPopulatedPlace>", L"</PAddrPopulatedPlace>","PAddrPopulatedPlace"),
-		PROPERTY_NAME(L"PAddrStreet",L"<PAddrStreet>", L"</PAddrStreet>","PAddrStreet"),
-		PROPERTY_NAME(L"PAddrNumber",L"<PAddrNumber>", L"</PAddrNumber>","PAddrNumber"),
-		PROPERTY_NAME(L"PAddrEntrance",L"<PAddrEntrance>", L"</PAddrEntrance>","PAddrEntrance"),
-		PROPERTY_NAME(L"PAddrFloor",L"<PAddrFloor>", L"</PAddrFloor>","PAddrFloor"),
-		PROPERTY_NAME(L"PAddrAppartment",L"<PAddrAppartment>", L"</PAddrAppartment>","PAddrAppartment"),
-		PROPERTY_NAME(L"CAddrDistrict",L"<CAddrDistrict>", L"</CAddrDistrict>","CAddrDistrict"),
-		PROPERTY_NAME(L"CAddrMunicipality",L"<CAddrMunicipality>", L"</CAddrMunicipality>","CAddrMunicipality"),
-		PROPERTY_NAME(L"CAddrPopulatedPlace",L"<CAddrPopulatedPlace>", L"</CAddrPopulatedPlace>","CAddrPopulatedPlace"),
-		PROPERTY_NAME(L"CAddrStreet",L"<CAddrStreet>", L"</CAddrStreet>","CAddrStreet"),
-		PROPERTY_NAME(L"CAddrNumber",L"<CAddrNumber>", L"</CAddrNumber>","CAddrNumber"),
-		PROPERTY_NAME(L"CAddrEntrance",L"<CAddrEntrance>", L"</CAddrEntrance>","CAddrEntrance"),
-		PROPERTY_NAME(L"CAddrFloor",L"<CAddrFloor>", L"</CAddrFloor>","CAddrFloor"),
-		PROPERTY_NAME(L"CAddrAppartment",L"<CAddrAppartment>", L"</CAddrAppartment>","CAddrAppartment"),
-		PROPERTY_NAME(L"Sitizenship",L"<Sitizenship>", L"</Sitizenship>","Sitizenship"),
-		PROPERTY_NAME(L"Sitizenship2",L"<Sitizenship2>", L"</Sitizenship2>","Sitizenship2"),
-		PROPERTY_NAME(L"IdDocNumber",L"<IdDocNumber>", L"</IdDocNumber>","IdDocNumber"),
-		PROPERTY_NAME(L"IdDocDate",L"<IdDocDate>", L"</IdDocDate>","IdDocDate"),
-		PROPERTY_NAME(L"IdDocRPU",L"<IdDocRPU>", L"</IdDocRPU>","IdDocRPU"),
-		PROPERTY_NAME(L"IdDocRDVR",L"<IdDocRDVR>", L"<IdDocRDVR/>","IdDocRDVR"),
-		PROPERTY_NAME(L"IdDocPopulatedPlace",L"<IdDocPopulatedPlace>", L"</IdDocPopulatedPlace>","IdDocPopulatedPlace"),
-		PROPERTY_NAME(L"BAddrPopulatedPlace",L"<BAddrPopulatedPlace>", L"</BAddrPopulatedPlace>","BAddrPopulatedPlace"),
-		PROPERTY_NAME(L"DeathDate", L"<DeathDate>", L"</DeathDate>","DeathDate")
+	    PROPERTY_NAME(L"ERROR_CODE",L"<ERROR_CODE>", L"</ERROR_CODE>", "ERROR_CODE"),										//0
+		PROPERTY_NAME(L"ErrorDescription",L"<ErrorDescription>", L"</ErrorDescription>", "ErrorDescription"),				//1
+		PROPERTY_NAME(L"PAddrHash",L"<PAddrHash>", L"</PAddrHash>", "PAddrHash"),								//2
+		PROPERTY_NAME(L"CAddrHash",L"<CAddrHash>", L"</CAddrHash>", "CAddrHash"),								//3
+		PROPERTY_NAME(L"PersonHash",L"<PersonHash>", L"</PersonHash>", "PersonHash"),										//4
+		PROPERTY_NAME(L"Egn",L"<Egn>", L"</Egn>", "Egn" ),																	//5
+		PROPERTY_NAME(L"FirstName",L"<FirstName>", L"</FirstName>", "FirstName"),											//6
+		PROPERTY_NAME(L"MiddleName",L"<MiddleName>", L"</MiddleName>","MiddleName"),										//7
+		PROPERTY_NAME(L"LastName",L"<LastName>", L"</LastName>","LastName"),												//8
+		PROPERTY_NAME(L"PAddrDistrict",L"<PAddrDistrict>", L"</PAddrDistrict>","PAddrDistrict"),							//9
+		PROPERTY_NAME(L"PAddrMunicipality",L"<PAddrMunicipality>", L"</PAddrMunicipality>","PAddrMunicipality"),			//10
+		PROPERTY_NAME(L"PAddrPopulatedPlace",L"<PAddrPopulatedPlace>", L"</PAddrPopulatedPlace>","PAddrPopulatedPlace"),	//11
+		PROPERTY_NAME(L"PAddrStreet",L"<PAddrStreet>", L"</PAddrStreet>","PAddrStreet"),									//12
+		PROPERTY_NAME(L"PAddrNumber",L"<PAddrNumber>", L"</PAddrNumber>","PAddrNumber"),									//13
+		PROPERTY_NAME(L"PAddrEntrance",L"<PAddrEntrance>", L"</PAddrEntrance>","PAddrEntrance"),							//14
+		PROPERTY_NAME(L"PAddrFloor",L"<PAddrFloor>", L"</PAddrFloor>","PAddrFloor"),										//15
+		PROPERTY_NAME(L"PAddrAppartment",L"<PAddrAppartment>", L"</PAddrAppartment>","PAddrAppartment"),					//16
+		PROPERTY_NAME(L"CAddrDistrict",L"<CAddrDistrict>", L"</CAddrDistrict>","CAddrDistrict"),							//17
+		PROPERTY_NAME(L"CAddrMunicipality",L"<CAddrMunicipality>", L"</CAddrMunicipality>","CAddrMunicipality"),			//18
+		PROPERTY_NAME(L"CAddrPopulatedPlace",L"<CAddrPopulatedPlace>", L"</CAddrPopulatedPlace>","CAddrPopulatedPlace"),	//19
+		PROPERTY_NAME(L"CAddrStreet",L"<CAddrStreet>", L"</CAddrStreet>","CAddrStreet"),									//20
+		PROPERTY_NAME(L"CAddrNumber",L"<CAddrNumber>", L"</CAddrNumber>","CAddrNumber"),									//21
+		PROPERTY_NAME(L"CAddrEntrance",L"<CAddrEntrance>", L"</CAddrEntrance>","CAddrEntrance"),							//22
+		PROPERTY_NAME(L"CAddrFloor",L"<CAddrFloor>", L"</CAddrFloor>","CAddrFloor"),										//23
+		PROPERTY_NAME(L"CAddrAppartment",L"<CAddrAppartment>", L"</CAddrAppartment>","CAddrAppartment"),					//24
+		PROPERTY_NAME(L"Sitizenship",L"<Sitizenship>", L"</Sitizenship>","Sitizenship"),									//25
+		PROPERTY_NAME(L"Sitizenship2",L"<Sitizenship2>", L"</Sitizenship2>","Sitizenship2"),								//26
+		PROPERTY_NAME(L"IdDocNumber",L"<IdDocNumber>", L"</IdDocNumber>","IdDocNumber"),									//27
+		PROPERTY_NAME(L"IdDocDate",L"<IdDocDate>", L"</IdDocDate>","IdDocDate"),											//28
+		PROPERTY_NAME(L"IdDocRPU",L"<IdDocRPU>", L"</IdDocRPU>","IdDocRPU"),												//29
+		PROPERTY_NAME(L"IdDocRDVR",L"<IdDocRDVR>", L"<IdDocRDVR/>","IdDocRDVR"),											//31
+		PROPERTY_NAME(L"IdDocPopulatedPlace",L"<IdDocPopulatedPlace>", L"</IdDocPopulatedPlace>","IdDocPopulatedPlace"),	//32
+		PROPERTY_NAME(L"BAddrPopulatedPlace",L"<BAddrPopulatedPlace>", L"</BAddrPopulatedPlace>","BAddrPopulatedPlace"),	//33
+		PROPERTY_NAME(L"DeathDate", L"<DeathDate>", L"</DeathDate>","DeathDate")											//34
 };
 
 /***
@@ -320,7 +365,7 @@ Retrieves person info for EGN in the PROPERTYNAME_VALUE arry!!!
 if the function fails all property values are set to NULL!!!
 */
 static HRESULT getPersonInfo(BSTR ein, 
-							 /*out array of 30 property name values the first is error code PROPERTYNAME_VALUE */
+							 /*out array of 34 property name values the first is error code PROPERTYNAME_VALUE */
 							 PROPERTYNAME_VALUE  *data){
  	HRESULT hr = NULL;
 	IPersonInfo *pPersonInfo;
@@ -341,8 +386,9 @@ static HRESULT getPersonInfo(BSTR ein,
 		//retrieve data if person loaded successfully!!!
 		if(hr == S_OK){
 			int propTableLength = sizeof(PROPERTY_TABLE)/sizeof(PROPERTY_TABLE[0]);
-			for(int i=2; i < propTableLength; i++){
+			for(int i = OFFSET_TO_DATA; i < propTableLength; i++){
 				hr = pPersonInfo->GetValue(PROPERTY_TABLE[i].propNameWideChar, &(data[i].propValue));
+
 				//convert to unicode
 				convertWin1251ToUnicode(data[i].propValue);
 				
@@ -390,12 +436,13 @@ static int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, int *resultArray){
 Creates a json string out of property-Name array!
 */
 static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
-	std::wstring res(L"");
-	int i =0;
-	int cnt = PROP_CNT;  //number of not null properties
-	jlong isSingleLine = testFlag(flags, SINGLE_LINE_FLAG);  //check if new line must be added between properties in result string
+	std::wstring res(L"");	
+	int i = 0;
+	int cnt = PROP_CNT;
+	jlong isSingleLine = testFlag(flags, SINGLE_LINE_FLAG); //check if new line must be added between properties in result string
 	std::wstring lbjson = L"{";
 	if(!isSingleLine) lbjson+L"\n";
+
 
 	//local array of integers storing indexes  only of not null and not empty properties!!!
 	int indexarray[PROP_CNT]; for(int j=0; j < PROP_CNT; j++) indexarray[j] = j;
@@ -404,31 +451,24 @@ static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, jlong flags)
 	if(testFlag(flags, SKIP_NULL_FLAG)){
 		cnt = notNullFilter(arraypNameValue, indexarray);
 	}
-	if(cnt == 0) return res;    //no not null properties allowed - return empty string instead!!!
+	if(cnt == 0) return res;
 
+	i=0;
 	for(; i < cnt-1; i++){
 		std::wstring propName(parray[indexarray[i]].propName.propNameWideChar);
-		std::wstring propValue(parray[indexarray[i]].propValue == NULL ? L"null" : parray[indexarray[i]].propValue);  //this is not supposed to happen but just in case!!!
+		std::wstring propValue(parray[indexarray[i]].propValue == NULL ? L"" : parray[indexarray[i]].propValue);  //this is not supposed to happen but just in case!!!
 		if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
 		else res+=(quote + propName + quote + colon + quote + propValue + quote + comma);
 	}
-	//add the last element to json string
+
 	std::wstring propName(parray[indexarray[i]].propName.propNameWideChar);
-	std::wstring propValue(parray[indexarray[i]].propValue == NULL ? L"null" : parray[indexarray[i]].propValue);
-	if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + nL);
-	else res+=(quote + propName + quote + colon + quote + propValue + quote);
+	std::wstring propValue(parray[indexarray[i]].propValue == NULL ? L"" : parray[indexarray[i]].propValue);
+	if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
+	else res+=(quote + propName + quote + colon + quote + propValue + quote + comma);
 	res= lbjson + res + ejson;
 
 	return res;
-	/*
-	if(SHOW_GUI)
-		MessageBoxW(
-			NULL,
-			res.c_str(),
-			PROPERTY_TABLE[i],
-			MB_ICONEXCLAMATION | MB_YESNO
-		);*/
-	//wprintf((const wchar_t*)res.data);
+
 }
 
 
@@ -463,28 +503,6 @@ static std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong flags){
 }
 
 
-
-/***
-Creates delimiter separated  sting out of property-Name array! Single line flag is not checked! Always returns single line string!!
-Not  null properties flag is also ignored!!
-*/
-static std::wstring createDelimiterSeparatedString(PROPERTYNAME_VALUE *arraypNameValue, std::wstring delimiter){
-	std::wstring res(L"");
-	int i = 0;
-	int cnt = PROP_CNT;
-	
-	for(i; i < cnt-1; i++){
-		std::wstring propValue(arraypNameValue[i].propValue == NULL ? L"" : arraypNameValue[i].propValue);
-		res+=(propValue + delimiter);
-	}
-	std::wstring propValue(arraypNameValue[i].propValue == NULL ? L"" : arraypNameValue[i].propValue);
-	res+=(propValue);
-	
-	return res;
-}
-
-
-
 /**
 Converts a java string to wide char string!!!
 */
@@ -510,11 +528,11 @@ static wchar_t * JavaToWSZ(JNIEnv* env, jstring string)
 Converts number to string! returns a pointer to allocated string !
 The caller must free memory!
 */
-static wchar_t * numberToString(long l ){
+static wchar_t * numberToString(long l, int radix){
 	wchar_t * str = (wchar_t *)malloc(33*sizeof(wchar_t));
 	if(str == NULL) return str;
 	memset(str, 0, 33*sizeof(wchar_t));  //zero the memory
-    _ltow(l, str,  16);  //convert to hex string
+    _ltow(l, str,  radix);  //convert to hex string
 	//wprintf(cc);
 	return str;
 }
@@ -532,6 +550,50 @@ void printStringCharCodes(wchar_t *st){
 	}
 	printf("\nString length = %d", len);
 }
+
+/**
+Calculates hash code of string
+*/
+long calcHash(BSTR str){
+	if(str == NULL) return 0;
+	int h = 1;
+	int len = wcslen(str);
+	for(int i=0; i < len; i++){
+		 h = 31 * h + str[i];
+	}
+	return h;
+}
+
+/**
+Calculates address hashCode
+*/
+long calcHash(ADDRESS *address){
+	if(address == NULL) return 0;
+	return calcHash(address->AddrDistrict) ^ 
+	calcHash(address->AddrMunicipality) ^ 
+	calcHash(address->AddrPopulatedPlace) ^ 
+	calcHash(address->AddrStreet) ^ 
+	calcHash(address->AddrNumber) ^ 
+	calcHash(address->AddreEntrance) ^ 
+	calcHash(address->AddrFloor) ^ 
+	calcHash(address->AddrApartment);
+}
+
+
+void fillAddress(ADDRESS *address, PROPERTYNAME_VALUE  *data, int offset){
+	if(address == NULL) return;
+	int i = 0;
+	address->AddrDistrict = data[offset+(i++)].propValue;
+	address->AddrMunicipality = data[offset+(i++)].propValue;
+	address->AddrPopulatedPlace = data[offset+(i++)].propValue;
+	address->AddrStreet =  data[offset+(i++)].propValue;
+	address->AddrNumber =  data[offset+(i++)].propValue;
+	address->AddreEntrance =  data[offset+(i++)].propValue;
+	address->AddrFloor =  data[offset+(i++)].propValue;
+	address->AddrApartment =  data[offset+(i++)].propValue;
+}
+
+
 
 /***
 Repalces win1251 cyrillic symbols with UNICODE Equivalents from win1251_To_UnicodeMap!
@@ -581,6 +643,26 @@ int __cdecl debug_wprintf(const wchar_t * format, ...){
 	 return 0;
 }
 
+
+
+/***
+Creates delimiter separated  sting out of property-Name array! Single line flag is not checked! Always returns single line string!!
+Not  null properties flag is also ignored!!
+*/
+static std::wstring createDelimiterSeparatedString(PROPERTYNAME_VALUE *arraypNameValue, std::wstring delimiter){
+	std::wstring res(L"");
+	int i = 0;
+	int cnt = PROP_CNT;
+	
+	for(i; i < cnt-1; i++){
+		std::wstring propValue(arraypNameValue[i].propValue == NULL ? L"" : arraypNameValue[i].propValue);
+		res+=(propValue + delimiter);
+	}
+	std::wstring propValue(arraypNameValue[i].propValue == NULL ? L"" : arraypNameValue[i].propValue);
+	res+=(propValue);
+	
+	return res;
+}
 
 
 /**

@@ -9,11 +9,12 @@
 #define SHOW_CONSOLE      0x2   //allocates console for the current process
 
 #define SINGLE_LINE_FLAG 0x1      //returns resulting string as one line
-#define JSON_FLAG  0x2			//creates json result string
-#define XML_FLAG   0x4			//creates xml result string
-#define CSV_FLAG   0x8			//creates csv result string
-#define TSV_FLAG   0x10			//creates tsv resuslt string
-#define SKIP_NULL_FLAG  0x20		    //skips null properties in result string
+#define JSON_FLAG  0x2			  //creates json result string
+#define XML_FLAG   0x4			  //creates xml result string
+#define CSV_FLAG   0x8			  //creates csv result string
+#define TSV_FLAG   0x10			  //creates tsv resuslt string
+#define SKIP_NULL_FLAG  0x20	  //skips null properties in result string
+#define CALC_HASH_FLAG  0x40     //calculate address hashes & person hashes
 
 //macros cheking certain flags
 /**
@@ -32,7 +33,8 @@
 #define IID_PERSON_INFO_OBJECT  L"{B8B2B5D9-D4BB-458D-861F-1136D00291A7}"
 #define IID_IPERSON_INFO  L"{5413B955-E58A-4939-A96D-D04B9CE5CD04}"
 #define IID_IPERSON_ID  "5413B955-E58A-4939-A96D-D04B9CE5CD04"
-#define PROP_CNT 31
+#define PROP_CNT 34    
+#define OFFSET_TO_DATA 5  //the start index of data fileds from COM object - befre that index are errorcode & hashes
 
 /***
 Structure  that holds property  name as both one byte & 2 byte chars & xmlBegin, xmlEnd tags!!!
@@ -51,6 +53,30 @@ struct _PROPERTY_NAME{
 	}
 };
 typedef _PROPERTY_NAME  PROPERTY_NAME;
+
+
+/***
+address structure holding properties for grao address
+*/
+struct _ADDRESS {
+	BSTR AddrDistrict;
+	BSTR AddrMunicipality;
+	BSTR AddrPopulatedPlace;
+	BSTR AddrStreet;
+	BSTR AddrNumber;
+	BSTR AddreEntrance;
+	BSTR AddrFloor;
+	BSTR AddrApartment;
+};
+typedef _ADDRESS ADDRESS;
+
+/***
+Structure that holds hashes
+*/
+struct _HASHES{
+	wchar_t* hpSt, *hcSt, *hSt;
+};
+typedef _HASHES HASHES;
 
 
 /**Property name &  value structure*/
@@ -91,20 +117,27 @@ public:
 
 //declarations of functions
 HRESULT getPersonInfo(BSTR ein, PROPERTYNAME_VALUE  *data);
-jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags, std::wstring(*strFun)(PROPERTYNAME_VALUE *, jlong) );
+jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags, std::wstring(*strFun)(PROPERTYNAME_VALUE *, jlong));
 wchar_t * JavaToWSZ(JNIEnv* env, jstring string);
 void initPropertyNames(PROPERTYNAME_VALUE *arr);
 void initPropertyNames(PROPERTYNAME_VALUE *arrayp);
 std::wstring createOutPut(PROPERTYNAME_VALUE *arraypNamValue, jlong);
 std::wstring createJson(PROPERTYNAME_VALUE *arraypNamValue, jlong);
-static std::wstring createDelimiterSeparatedString(PROPERTYNAME_VALUE *arraypNameValue, std::wstring delimiter);
 std::wstring createXml(PROPERTYNAME_VALUE *arraypNameValue, jlong);
-wchar_t * numberToString(long );   //converts number to hex string!!!
+std::wstring createDelimiterSeparatedString(PROPERTYNAME_VALUE *arraypNameValue, std::wstring delimiter);
+wchar_t * numberToString(long, int );   //converts number to hex string!!!
 void printStringCharCodes(wchar_t *st);
 void initWin1251TounicodeMap();
-int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, int *resultArray);  //Takes only not null properties into a  result array of pointers!!!
+int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, int *resultArray);  //Takes only not null properties into a  result array of integers!!!
 jlong testDFlag(jlong flag);
 jlong testFlag(jlong flags, jlong flag);
+long calcHash(BSTR str);
+long calcHash(PROPERTYNAME_VALUE *arraypNamValue);  //calcuates hash for person properties
+long calcHash(ADDRESS *address);
+void calcHashes(PROPERTYNAME_VALUE *arraypNamValue, long *);   //returns array of 3 hash codes
+void fillHashes(HASHES *, long *);                             //fills the hashes structure  by 3 item long array
+void freeHashes(HASHES *);                                      //freees hashes string pointers
+void fillAddress(ADDRESS *address, PROPERTYNAME_VALUE  *data, int offset);
 void convertWin1251ToUnicode(wchar_t * st); //Repalces win1251 cyrillic symbols with UNICODE Equivalents from win1251_To_UnicodeMap!
 int __cdecl debug_printf(const char * _Format, ...);
 int __cdecl debug_wprintf(const wchar_t * _Format, ...);
