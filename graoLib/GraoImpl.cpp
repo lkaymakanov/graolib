@@ -82,6 +82,8 @@ jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*str
 		 propNameValue[2].propValue = hash.hpSt;
 		 propNameValue[3].propValue = hash.hcSt;
 		 propNameValue[4].propValue = hash.hSt;
+
+
 	 }
 
 	 //create  string from person properties
@@ -107,53 +109,6 @@ jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*str
 	 return retval;  
 }
 
-/***
-
-Calculates hashes & fills array of 3 items of long
-*/
-void calcHashes(PROPERTYNAME_VALUE *arraypNamValue, long * outArray){
-	long h = 0;
-	
-	h= calcHash(arraypNamValue[OFFSET_TO_DATA].propValue);
-	for(int i = OFFSET_TO_DATA+1; i < 9; i++){
-		h^=calcHash(arraypNamValue[i].propValue);
-	}
-
-	ADDRESS adr;
-	//permanent address hash
-	fillAddress(&adr, arraypNamValue, 9);
-	outArray[0] = calcHash(&adr);
-	h^=outArray[0];
-		 
-	//current address hash
-	fillAddress(&adr, arraypNamValue, 17);
-	outArray[1] = calcHash(&adr);
-	h^=outArray[1];
-	
-	for(int i = 18; i < PROP_CNT; i++){
-		h^=calcHash(arraypNamValue[i].propValue);
-	}
-	outArray[2] = h;
-	return;
-}
-
-/**
-frees memory for allocated strings
-*/
-void freeHashes(HASHES *h){
-	if(h == NULL) return;
-	if(h->hcSt != NULL) free(h->hcSt);
-	if(h->hpSt != NULL) free(h->hpSt);
-	if(h->hSt != NULL) free(h->hSt);
-}
-
-
-void fillHashes(HASHES * hst , long *hl){
-	if(hst == NULL || hl ==NULL) return;
-	hst->hpSt = numberToString(hl[0], 10);
-	hst->hcSt = numberToString(hl[1],10);
-	hst->hSt = numberToString(hl[2], 10);
-}
 
 JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfo
 	(JNIEnv *env, jobject ob, jstring egn, jlong flagss ){
@@ -217,6 +172,58 @@ JNIEXPORT void JNICALL printPersonInfo(WCHAR *idn){
 
 //===================================== END OF EXPORTS DEFINITIONS ============================================
 
+
+
+/***
+
+Calculates hashes & fills array of 3 items of long
+*/
+void calcHashes(PROPERTYNAME_VALUE *arraypNamValue, long * outArray){
+	long h = 0;
+	
+	h= calcHash(arraypNamValue[OFFSET_TO_DATA].propValue);
+	for(int i = OFFSET_TO_DATA+1; i < 9; i++){
+		h^=calcHash(arraypNamValue[i].propValue);
+	}
+
+	ADDRESS adr;
+	//permanent address hash
+	fillAddress(&adr, arraypNamValue, 9);
+	outArray[0] = calcHash(&adr);
+	h^=outArray[0];
+		 
+	//current address hash
+	fillAddress(&adr, arraypNamValue, 17);
+	outArray[1] = calcHash(&adr);
+	h^=outArray[1];
+	
+	for(int i = 18; i < PROP_CNT; i++){
+		h^=calcHash(arraypNamValue[i].propValue);
+	}
+	outArray[2] = h;
+	return;
+}
+
+/**
+frees memory for allocated strings
+*/
+void freeHashes(HASHES *h){
+	if(h == NULL) return;
+	if(h->hcSt != NULL) free(h->hcSt);
+	if(h->hpSt != NULL) free(h->hpSt);
+	if(h->hSt != NULL) free(h->hSt);
+}
+
+/***
+fills HASHES struct hst from 3 items array of lon with paddress hash, caddress hash & personhash.
+*/
+void fillHashes(HASHES * hst , long *hl){
+	if(hst == NULL || hl ==NULL) return;
+	hst->hpSt = numberToString(hl[0], 10);
+	hst->hcSt = numberToString(hl[1],10);
+	hst->hSt = numberToString(hl[2], 10);
+}
+
 /***
 Shows console for the current process if console is not shown
 */
@@ -249,8 +256,8 @@ Table that contains the names of the properties for loaded Person!!!
 PROPERTY_NAME  PROPERTY_TABLE [PROP_CNT] = {
 	    PROPERTY_NAME(L"ERROR_CODE",L"<ERROR_CODE>", L"</ERROR_CODE>", "ERROR_CODE"),										//0
 		PROPERTY_NAME(L"ErrorDescription",L"<ErrorDescription>", L"</ErrorDescription>", "ErrorDescription"),				//1
-		PROPERTY_NAME(L"PAddrHash",L"<PAddrHash>", L"</PAddrHash>", "PAddrHash"),								//2
-		PROPERTY_NAME(L"CAddrHash",L"<CAddrHash>", L"</CAddrHash>", "CAddrHash"),								//3
+		PROPERTY_NAME(L"PAddrHash",L"<PAddrHash>", L"</PAddrHash>", "PAddrHash"),											//2
+		PROPERTY_NAME(L"CAddrHash",L"<CAddrHash>", L"</CAddrHash>", "CAddrHash"),											//3
 		PROPERTY_NAME(L"PersonHash",L"<PersonHash>", L"</PersonHash>", "PersonHash"),										//4
 		PROPERTY_NAME(L"Egn",L"<Egn>", L"</Egn>", "Egn" ),																	//5
 		PROPERTY_NAME(L"FirstName",L"<FirstName>", L"</FirstName>", "FirstName"),											//6
@@ -463,8 +470,8 @@ static std::wstring createJson(PROPERTYNAME_VALUE *arraypNameValue, jlong flags)
 
 	std::wstring propName(parray[indexarray[i]].propName.propNameWideChar);
 	std::wstring propValue(parray[indexarray[i]].propValue == NULL ? L"" : parray[indexarray[i]].propValue);
-	if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote + comma + nL);
-	else res+=(quote + propName + quote + colon + quote + propValue + quote + comma);
+	if(!isSingleLine) res+=(quote + propName + quote + colon + quote + propValue + quote +  nL);
+	else res+=(quote + propName + quote + colon + quote + propValue + quote);
 	res= lbjson + res + ejson;
 
 	return res;
@@ -552,11 +559,11 @@ void printStringCharCodes(wchar_t *st){
 }
 
 /**
-Calculates hash code of string
+Calculates hash code of BSTR string
 */
 long calcHash(BSTR str){
 	if(str == NULL) return 0;
-	int h = 1;
+	int h = 0;
 	int len = wcslen(str);
 	for(int i=0; i < len; i++){
 		 h = 31 * h + str[i];
@@ -579,7 +586,9 @@ long calcHash(ADDRESS *address){
 	calcHash(address->AddrApartment);
 }
 
-
+/**
+Fills address from PROPERTYNAME_VALUE array & offset that show the start inde of address properties in PROPERTYNAME_VALUE array!
+*/
 void fillAddress(ADDRESS *address, PROPERTYNAME_VALUE  *data, int offset){
 	if(address == NULL) return;
 	int i = 0;
