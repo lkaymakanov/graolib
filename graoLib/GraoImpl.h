@@ -14,9 +14,9 @@
 #define CSV_FLAG   0x8			  //creates csv result string
 #define TSV_FLAG   0x10			  //creates tsv resuslt string
 #define SKIP_NULL_FLAG  0x20	  //skips null properties in result string
-#define CALC_HASH_FLAG  0x40     //calculate address hashes & person hashes
+#define CALC_HASH_FLAG  0x40      //calculate address hashes & person hashes
 
-//macros cheking certain flags
+//macros checking certain flags
 /**
 #define IS_JSON(f)(f&JSON_FLAG)
 #define IS_SINGLE_LINE(f)   (f & SINGLE_LINE_FLAG)
@@ -56,7 +56,7 @@ typedef _PROPERTY_NAME  PROPERTY_NAME;
 
 
 /***
-address structure holding properties for grao address
+Address structure holding properties for grao address
 */
 struct _ADDRESS {
 	BSTR AddrDistrict;
@@ -132,13 +132,14 @@ int notNullFilter(PROPERTYNAME_VALUE *arraypNamValue, int *resultArray);  //Take
 jlong testDFlag(jlong flag);
 jlong testFlag(jlong flags, jlong flag);
 long calcHash(BSTR str);
-long calcHash(PROPERTYNAME_VALUE *arraypNamValue);  //calcuates hash for person properties
+long calcHash(PROPERTYNAME_VALUE *arraypNamValue);  		    //calcuates hash for person properties
 long calcHash(ADDRESS *address);
-void calcHashes(PROPERTYNAME_VALUE *arraypNamValue, long *);   //returns array of 3 hash codes
-void fillHashes(HASHES *, long *);                             //fills the hashes structure  by 3 item long array
+void calcHashes(PROPERTYNAME_VALUE *arraypNamValue, long *);    //returns array of 3 hash codes
+void fillHashes(HASHES *, long *);                              //fills the hashes structure  by 3 item long array
 void freeHashes(HASHES *);                                      //freees hashes string pointers
 void fillAddress(ADDRESS *address, PROPERTYNAME_VALUE  *data, int offset);
-void convertWin1251ToUnicode(wchar_t * st); //Repalces win1251 cyrillic symbols with UNICODE Equivalents from win1251_To_UnicodeMap!
+void printAddress(ADDRESS *pAddress);
+void convertWin1251ToUnicode(wchar_t * st); 				    //Repalces win1251 cyrillic symbols with UNICODE Equivalents from win1251_To_UnicodeMap!
 int __cdecl debug_printf(const char * _Format, ...);
 int __cdecl debug_wprintf(const wchar_t * _Format, ...);
 DWORD  getSystemErrorDescription(PWSTR *resultString, DWORD errNumber);

@@ -185,18 +185,25 @@ void calcHashes(PROPERTYNAME_VALUE *arraypNamValue, long * outArray){
 	for(int i = OFFSET_TO_DATA+1; i < 9; i++){
 		h^=calcHash(arraypNamValue[i].propValue);
 	}
-
+	int debug = testDFlag(DEBUG_FLAG);
+	
 	ADDRESS adr;
 	//permanent address hash
 	fillAddress(&adr, arraypNamValue, 9);
 	outArray[0] = calcHash(&adr);
 	h^=outArray[0];
+	if(debug){
+		printAddress(&adr);
+	}
 		 
 	//current address hash
 	fillAddress(&adr, arraypNamValue, 17);
 	outArray[1] = calcHash(&adr);
 	h^=outArray[1];
-	
+	if(debug){
+		printAddress(&adr);
+	}
+
 	for(int i = 18; i < PROP_CNT; i++){
 		h^=calcHash(arraypNamValue[i].propValue);
 	}
@@ -366,6 +373,41 @@ static void printProperty(PROPERTYNAME_VALUE *property){
 		printf("=======================================================\n");
 }
 
+static void printAddress(ADDRESS *pAddress){
+	if(pAddress == NULL) return;
+	printf("AddrDistrict:");
+	wprintf(pAddress->AddrDistrict == NULL ? L"null" : pAddress->AddrDistrict);
+	printStringCharCodes(pAddress->AddrDistrict);
+	printf("\n");
+	printf("AddrMunicipality:");
+	wprintf(pAddress->AddrMunicipality == NULL ? L"null" : pAddress->AddrMunicipality);
+	printStringCharCodes(pAddress->AddrMunicipality);
+	printf("\n");
+	printf("AddrPopulatedPlace:");
+	wprintf(pAddress->AddrPopulatedPlace == NULL ? L"null" : pAddress->AddrPopulatedPlace);
+	printStringCharCodes(pAddress->AddrPopulatedPlace);
+	printf("\n");
+	printf("AddrStreet:");
+	wprintf(pAddress->AddrStreet == NULL ? L"null" : pAddress->AddrStreet);
+	printStringCharCodes(pAddress->AddrStreet);
+	printf("\n");
+	printf("AddrNumber:");
+	wprintf(pAddress->AddrNumber == NULL ? L"null" : pAddress->AddrNumber);
+	printStringCharCodes(pAddress->AddrNumber);
+	printf("\n");
+	printf("AddreEntrance:");
+	wprintf(pAddress->AddreEntrance == NULL ? L"null" : pAddress->AddreEntrance);
+	printStringCharCodes(pAddress->AddreEntrance);
+	printf("\n");
+	printf("AddrFloor:");
+	wprintf(pAddress->AddrFloor == NULL ? L"null" : pAddress->AddrFloor);
+	printStringCharCodes(pAddress->AddrFloor);
+	printf("\n");
+	printf("AddrApartment:");
+	wprintf(pAddress->AddrApartment == NULL ? L"null" : pAddress->AddrApartment);
+	printStringCharCodes(pAddress->AddrApartment);
+	printf("\n");
+}
 
 /**
 Retrieves person info for EGN in the PROPERTYNAME_VALUE arry!!!
