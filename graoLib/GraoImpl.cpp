@@ -70,7 +70,7 @@ jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*str
 
 	 PWSTR errDesc= NULL;
 	 //set error description if errorcode != S_OK
-	 if(!(hr == S_OK)){
+	 if((hr != S_OK) && !testFlag(flags, SKIP_ERR_DESCRIPTION_FLAG)){
 		 getSystemErrorDescription(&errDesc, hr);
 		 (&propNameValue[1])->propValue = errDesc;
 	 }
