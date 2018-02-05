@@ -16,17 +16,9 @@
 #define SKIP_NULL_FLAG  0x20	  //skips null properties in result string
 #define CALC_HASH_FLAG  0x40      //calculate address hashes & person hashes
 #define SKIP_ERR_DESCRIPTION_FLAG  0x80     //does not retrieve system error by error code
+#define SHEFER 0x100			  //creates single line string separated by | separator
 
 //macros checking certain flags
-/**
-#define IS_JSON(f)(f&JSON_FLAG)
-#define IS_SINGLE_LINE(f)   (f & SINGLE_LINE_FLAG)
-#define IS_XML(f)(f&XML_FLAG)
-#define IS_CSV(f)(f&CSV_FLAG)
-#define IS_TSV(f)(f&TSV_FLAG)
-#define IS_SKIP_NULL(f)(f&SKIP_NULL)
-*/
-
 
 
 //declarations 
@@ -35,7 +27,7 @@
 #define IID_IPERSON_INFO  L"{5413B955-E58A-4939-A96D-D04B9CE5CD04}"
 #define IID_IPERSON_ID  "5413B955-E58A-4939-A96D-D04B9CE5CD04"
 #define PROP_CNT 34    
-#define OFFSET_TO_DATA 5  //the start index of data fieлds from COM object - befre that index are errorcode & hashes
+#define OFFSET_TO_DATA 5  //the start index of data fields from COM object - before that index are errorcode & hashes
 
 /***
 Structure  that holds property  name as both one byte & 2 byte chars & xmlBegin, xmlEnd tags!!!

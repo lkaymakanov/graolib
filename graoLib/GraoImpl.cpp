@@ -17,6 +17,7 @@ static std::wstring nL(L"\n");  //new line
 static std::wstring quote(L"\"");  //double quote 
 static std::wstring colon(L":"); //colon
 static std::wstring comma(L",");  //comma
+static std::wstring shefer(L"|");
 static std::wstring tab(L"	");  //tab
 static std::wstring bjson(L"{");  //begin of json object
 static std::wstring ejson(L"}");   //end  of json object
@@ -34,6 +35,24 @@ static jlong dflags = 0;
 
 
 
+/***
+Prints flags in console
+*/
+static void printFlags(jlong flags){
+	 int debug = testDFlag(DEBUG_FLAG);
+	 if(debug){
+		 printf("Flags in getPersonInfo are %d\n", flags);
+		 printf("IS_SINGLE_LINE %d\n", testFlag(flags, SINGLE_LINE_FLAG));
+		 printf("IS_JSON %d\n", testFlag(flags, JSON_FLAG) );
+		 printf("IS_XML %d\n", testFlag(flags, XML_FLAG));
+		 printf("IS_SKIP_NULL %d\n", testFlag(flags, SKIP_NULL_FLAG));
+		 printf("IS_TSV %d\n", testFlag(flags, TSV_FLAG));
+		 printf("IS_CSV %d\n", testFlag(flags, CSV_FLAG));
+		 printf("IS_CALC_HASH %d\n", testFlag(flags, CALC_HASH_FLAG));
+		 printf("IS_SHEFER %d\n", testFlag(flags, SHEFER));
+	 }
+}
+
 
 jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*strFun)(PROPERTYNAME_VALUE *, jlong) ){
 	 //unsigned short *egnConverted = (unsigned short*)env->GetStringUTFChars(egn, 0);
@@ -46,15 +65,8 @@ jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*str
 
 	 long hashes[3];
 
-	 int debug = testDFlag(DEBUG_FLAG);
-	 if(debug){
-		 printf("Flags in getPersonInfo are %d\n", flags);
-		 printf("IS_SINGLE_LINE %d\n", testFlag(flags, SINGLE_LINE_FLAG));
-		 printf("IS_JSON %d\n", testFlag(flags, JSON_FLAG) );
-		 printf("IS_XML %d\n", testFlag(flags, XML_FLAG));
-		 printf("IS_SKIP_NULL %d\n", testFlag(flags, SKIP_NULL_FLAG));
-		 printf("IS_CALC_HASH %d\n", testFlag(flags, CALC_HASH_FLAG));
-	 }
+	 //prints flags in console if debug flag is raised!!!
+	 printFlags(flags);
 
 	 //convert EGN to wide char
 	 wchar_t* wsz = JavaToWSZ(env, egn);
@@ -82,8 +94,6 @@ jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*str
 		 propNameValue[2].propValue = hash.hpSt;
 		 propNameValue[3].propValue = hash.hcSt;
 		 propNameValue[4].propValue = hash.hSt;
-
-
 	 }
 
 	 //create  string from person properties
@@ -218,7 +228,7 @@ void freeHashes(HASHES *h){
 	if(h == NULL) return;
 	if(h->hcSt != NULL) free(h->hcSt);
 	if(h->hpSt != NULL) free(h->hpSt);
-	if(h->hSt != NULL) free(h->hSt);
+	if(h->hSt != NULL)  free(h->hSt);
 }
 
 /***
@@ -444,7 +454,7 @@ static HRESULT getPersonInfo(BSTR ein,
 				//print property if flag is set
 				printProperty(&data[i]);
 			}
-			printf("\n");
+			//printf("\n");
 		}
 		//Free Object finally
 		pPersonInfo->Release();
@@ -463,6 +473,7 @@ static std::wstring createOutPut(PROPERTYNAME_VALUE *arraypNamValue, jlong flags
 	if(testFlag(flags, XML_FLAG))  return createXml(arraypNamValue, flags);
 	if(testFlag(flags, CSV_FLAG))  return createDelimiterSeparatedString(arraypNamValue, comma);
 	if(testFlag(flags, TSV_FLAG))  return createDelimiterSeparatedString(arraypNamValue, tab);
+	if(testFlag(flags, SHEFER))    return createDelimiterSeparatedString(arraypNamValue, shefer);
 	return createJson(arraypNamValue, flags);
 }
 
