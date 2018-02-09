@@ -15,7 +15,7 @@ extern "C" {
 
 //transforms methods from instance to class static methods 
 //if JAVA_CLASSS_STATIC_METHODS is defined
-//#define JAVA_CLASSS_STATIC_METHODS
+#define JAVA_CLASSS_STATIC_METHODS
 
 #ifdef JAVA_CLASSS_STATIC_METHODS
 #define CLASS_OBJECT jclass
@@ -57,7 +57,7 @@ JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_showConsole
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_setFlags
-  (JNIEnv *, jobject, jlong);
+	(JNIEnv *, CLASS_OBJECT, jlong);
 
 #ifdef __cplusplus
 }

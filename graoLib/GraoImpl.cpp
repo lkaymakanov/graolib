@@ -150,7 +150,7 @@ JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_showConsole(JNIEnv *env, C
 Sets debug flags in grao dll library from java!!!
 */
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_setFlags
-	(JNIEnv *env, jobject ob, jlong jflags){
+	(JNIEnv *env, CLASS_OBJECT ob, jlong jflags){
 		dflags = jflags;
 }
 
