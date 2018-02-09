@@ -121,13 +121,13 @@ jstring getPersonInfo(JNIEnv *env,  jstring egn, jlong flags,  std::wstring(*str
 
 
 JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfo
-	(JNIEnv *env, jobject ob, jstring egn, jlong flagss ){
+	(JNIEnv *env, CLASS_OBJECT ob, jstring egn, jlong flagss ){
 	return getPersonInfo(env, egn, flagss, createOutPut);
 }
 
 //initialize COM
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_initializeCom
-(JNIEnv *env, jobject ob){
+(JNIEnv *env, CLASS_OBJECT ob){
 	HRESULT res = CoInitialize(NULL);
 	if(testDFlag(DEBUG_FLAG))
 	printf("CoInitialize called result =  %d... " , res);
@@ -135,14 +135,14 @@ JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_initializeCom
 
 //close COM
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_unInitializeCom
-(JNIEnv *env, jobject ob){
+(JNIEnv *env, CLASS_OBJECT ob){
 	CoUninitialize();
 	if(testDFlag(DEBUG_FLAG))
 	printf("CoUnitialize called... ");
 }
 
 //shows console for current process!!!
-JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_showConsole(JNIEnv *env, jobject ob){
+JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_showConsole(JNIEnv *env, CLASS_OBJECT ob){
 	showConsole();
 }
 

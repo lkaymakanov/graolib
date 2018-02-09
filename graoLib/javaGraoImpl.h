@@ -12,8 +12,20 @@ extern "C" {
  * Method:    getPersonInfo
  * Signature: (Ljava/lang/String;J)Ljava/lang/String;
  */
+
+//transforms methods from instance to class static methods 
+//if JAVA_CLASSS_STATIC_METHODS is defined
+//#define JAVA_CLASSS_STATIC_METHODS
+
+#ifdef JAVA_CLASSS_STATIC_METHODS
+#define CLASS_OBJECT jclass
+
+#else
+#define CLASS_OBJECT jobject
+#endif
+
 JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfo
-  (JNIEnv *, jobject, jstring, jlong);
+  (JNIEnv *, CLASS_OBJECT, jstring, jlong);
 
 /*
  * Class:     grao_integration_GraoImpl
@@ -21,7 +33,7 @@ JNIEXPORT jstring JNICALL Java_grao_integration_GraoImpl_getPersonInfo
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_initializeCom
-  (JNIEnv *, jobject);
+  (JNIEnv *, CLASS_OBJECT);
 
 /*
  * Class:     grao_integration_GraoImpl
@@ -29,7 +41,7 @@ JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_initializeCom
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_unInitializeCom
-  (JNIEnv *, jobject);
+  (JNIEnv *, CLASS_OBJECT);
 
 /*
  * Class:     grao_integration_GraoImpl
@@ -37,7 +49,7 @@ JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_unInitializeCom
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_grao_integration_GraoImpl_showConsole
-  (JNIEnv *, jobject);
+  (JNIEnv *, CLASS_OBJECT);
 
 /*
  * Class:     grao_integration_GraoImpl
